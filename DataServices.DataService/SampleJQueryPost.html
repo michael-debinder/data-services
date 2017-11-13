@@ -1,0 +1,50 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple API Test in JQuery</title>
+	<meta charset="utf-8" />
+    <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-2.0.3.min.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            $('#JSONResponse').hide();
+
+            $('#Execute').click(function () {
+                $('#JSONRequest').hide();
+
+                $.post('api/search', JSON.parse($('#jsonText').val()), null, 'json')
+                    .done(function (data) {
+                        $('#ResultText').text(JSON.stringify(data));
+                    })
+                    .fail(function (jqXHR, textStatus, err) {
+                        $('#ResultText').text('Error: ' + err);
+                    });
+
+                $('#JSONResponse').show();
+            });
+
+            $('#Reset').click(function () {
+                $('#JSONRequest').show();
+                $('#JSONResponse').hide();
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Simple API Test in JQuery</h1>
+    <div id="JSONRequest" style="width: 800px;">
+        <h3>Enter JSON below and click the "Execute" button to submit against the Search API.</h3>
+        <textarea id="jsonText" cols="95" rows="30">{"APIContext":{"SessionID":"00000000-0000-0000-0000-000000000000","SiteNickName":"DMEZ","SecUserKey":943},"Search":{"Type":"AppealTracking","PageSize":25,"Page":1,"Select":["AppealTrackingKey","Patient","Patient.Name","Payor","Payor.Name"]}}</textarea>
+        <div style="width: 100%; text-align: right">
+            <input type="button" id="Execute" value="Execute" />
+        </div>
+    </div>
+    <div id="JSONResponse" style="width: 800px;">
+        <h3>Results from "api/search". Click "Reset" button below to try something else.</h3>
+        <div id="ResultText"></div>
+        <div style="width: 100%; text-align: right">
+            <input type="button" id="Reset" value="Reset" />
+        </div>
+    </div>
+    <a href="SampleSearches.aspx" target="_blank">See some sample searches.</a>
+</body>
+</html>
