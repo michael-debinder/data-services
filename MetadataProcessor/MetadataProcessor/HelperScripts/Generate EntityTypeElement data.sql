@@ -3,7 +3,7 @@ DECLARE @EntityTypeKey VARCHAR(10) = '1'
 DECLARE @StartKey INT = 1
 SELECT 'UNION ALL SELECT ' + CONVERT(VARCHAR, @StartKey + (ROW_NUMBER() OVER(ORDER BY c.column_id))) + ', ' + @EntityTypeKey + ', ' + CONVERT(VARCHAR, (ROW_NUMBER() OVER(ORDER BY c.column_id))) + ', ' + 
 	'N''' + c.Name + ''', N''' + c.Name + ''', ''' + c.Name + ''', ' + 
-	CASE WHEN ut.name in ('int','tinyint','smallint') THEN '1'
+	CASE WHEN ut.name in ('bigint','int','tinyint','smallint') THEN '1'
 		WHEN st.name in ('nvarchar','varchar', 'char') THEN '2' 
 		WHEN st.name in ('bit') THEN '3' 
 		WHEN st.name in ('date') THEN '4' 
