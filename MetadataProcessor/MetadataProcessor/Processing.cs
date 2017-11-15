@@ -36,6 +36,8 @@ namespace MetadataProcessor
 
         public string EntityTypesLoc { get; set; }
 
+        public string EntityTypeResolverLoc { get; set; }
+
         private void InitializeBackgroundWorker()
         {
             _backgroundWorker = new BackgroundWorker();
@@ -91,6 +93,8 @@ namespace MetadataProcessor
 
                 GenerateEntityTypes(entityType);
             }
+
+            GenerateEntityTypeResolver(query.ToList());
 
             appendMessage("Complete");
         }
@@ -169,8 +173,8 @@ namespace MetadataProcessor
             appendMessage(string.Format("Generating {0} POCOs.", entityType.Name));
 
             content.AppendFormat(
-                @"// <copyright file=""{0}{1}.cs"" company=""Brightree LLC"">
-//     Copyright (c) Brightree LLC. All rights reserved.
+                @"// <copyright file=""{0}{1}.cs"" company=""[None]"">
+//     Copyright (c) Michael DeBinder. All rights reserved.
 // </copyright>
 
 namespace DataServices.SDK.Entities
@@ -183,7 +187,7 @@ namespace DataServices.SDK.Entities
     /// Represents a specific instance of the {1} entity type with strongly typed attributes.
     /// Generated from code.
     /// </summary>
-    public class {0}{1} : {0}Entity
+    public partial class {0}{1} : {0}Entity
     {{
         /// <summary>
         /// The public name identifying this entity.
@@ -260,12 +264,12 @@ namespace DataServices.SDK.Entities
                     column.Name,
                     PREFIX,
                     column.ReferenceTypeName,
-                    column.Name.Substring(0,1).ToLower() + column.Name.Substring(1));
+                    column.Name.Substring(0, 1).ToLower() + column.Name.Substring(1));
             }
 
             content.AppendFormat(
-                @"// <copyright file=""{0}{1}Attrs.cs"" company=""Brightree LLC"">
-//     Copyright (c) Brightree LLC. All rights reserved.
+                @"// <copyright file=""{0}{1}Attrs.cs"" company=""[None]"">
+//     Copyright (c) Michael DeBinder. All rights reserved.
 // </copyright>
 
 namespace DataServices.SDK.Entities.Attrs
@@ -356,34 +360,34 @@ namespace DataServices.SDK.Entities.Attrs
 
             appendMessage(string.Format("Generating {0} Entity Type definition.", entityType.Name));
             content.AppendFormat(
-                @"// <copyright file=""{0}.cs"" company=""Brightree LLC"">
-//     Copyright (c) Brightree LLC. All rights reserved.
+                @"// <copyright file=""{0}.cs"" company=""[None]"">
+//     Copyright (c) Michael DeBinder. All rights reserved.
 // </copyright>
 
-    namespace DataServices.DataAccess.EntityTypes
-    {{
-        using Data;
-        using SDK.Data;
+namespace DataServices.DataAccess.EntityTypes
+{{
+	using Data;
+	using SDK.Data;
 
-        /// <summary>
-        /// Entity definition for the {0} object.
-        /// </summary>
-        public class {0} : {1}EntityType
-        {{
-            /// <summary>Class name for this Entity Type.</summary>
-            public const string ClassName = ""{0}"";
+	/// <summary>
+	/// Entity definition for the {0} object.
+	/// </summary>
+	public class {0} : {1}EntityType
+	{{
+		/// <summary>Class name for this Entity Type.</summary>
+		public const string ClassName = ""{0}"";
 
-            /// <summary>
-            /// Initializes a new instance of the <see cref=""{0}"" /> class.
-            /// </summary>
-            public {0}() : base()
-            {{
-                Name = ""{0}"";
-                StorageName = ""{2}"";
-                KeyName = ""{3}"";
+		/// <summary>
+		/// Initializes a new instance of the <see cref=""{0}"" /> class.
+		/// </summary>
+		public {0}() : base()
+		{{
+			Name = ""{0}"";
+			StorageName = ""{2}"";
+			KeyName = ""{3}"";
 
-                Add(KeyName, {1}ElementTypeEnum.Integer);
-                ",
+			Add(KeyName, {1}ElementTypeEnum.Integer);
+            ",
         entityType.Name,
         PREFIX,
         entityType.StorageName,
@@ -395,7 +399,7 @@ namespace DataServices.SDK.Entities.Attrs
                 {
                     content.AppendFormat(
                         @"
-                AddVirtualElement(""{0}"", ""{1}"", {2});",
+			AddVirtualElement(""{0}"", ""{1}"", {2});",
                         column.Name,
                         column.VirtualPath,
                         GetDataTypeEnumString(column));
@@ -404,7 +408,7 @@ namespace DataServices.SDK.Entities.Attrs
                 {
                     content.AppendFormat(
                         @"
-                AddReference(""{0}"", ""{1}"", ""{2}"");",
+			AddReference(""{0}"", ""{1}"", ""{2}"");",
                         column.Name,
                         column.StorageName,
                         column.ReferenceTypeName);
@@ -413,7 +417,7 @@ namespace DataServices.SDK.Entities.Attrs
                 {
                     content.AppendFormat(
                         @"
-                Add(""{0}"", {1}{2});",
+			Add(""{0}"", {1}{2});",
                         column.Name,
                         GetDataTypeEnumString(column),
                         column.AllowNull ? ", true" : string.Empty);
@@ -424,8 +428,90 @@ namespace DataServices.SDK.Entities.Attrs
         }
     }
 }");
-            
+
             WriteFile(EntityTypesLoc, string.Format("{0}.cs", entityType.Name), content);
+        }
+
+        private void GenerateEntityTypeResolver(List<EntityTypes> entityTypes)
+        {
+            if (string.IsNullOrEmpty(EntityTypeResolverLoc))
+            {
+                return;
+            }
+
+            var content = new StringBuilder();
+
+            var entityNameList = new StringBuilder();
+            var entityCaseList = new StringBuilder();
+
+            foreach(var entityType in entityTypes)
+            {
+                entityNameList.AppendFormat(
+                    @"
+            ""{0}"",",
+                    entityType.Name);
+
+                entityCaseList.AppendFormat(
+                    @"
+                case ""{0}"":
+                    return new {0}(); ",
+                    entityType.Name);
+            }
+
+            appendMessage("Generating Static Entity Type Resolver definition.");
+            content.AppendFormat(
+                @"// <copyright file=""{0}StaticEntityTypeResolver.cs"" company=""[None]"">
+//     Copyright (c) Michael DeBinder. All rights reserved.
+// </copyright>
+
+namespace DataServices.DataAccess.Data
+{{
+    using System.Collections.Generic;
+    using EntityTypes;
+
+    /// <summary>
+    /// Implementation of the entity resolver using hard-coded definitions (rather than pulling from SQL, an XML file, etc.).
+    /// This is generated by code from the MetaData stored in the database.
+    /// </summary>
+    public partial class DSStaticEntityTypeResolver : IDSEntityTypeResolver
+    {{
+        /// <summary>
+        /// Storage for the list of all available types.
+        /// </summary>
+        private List<string> _types = new List<string>
+        {{{1}
+        }};
+
+        /// <summary>
+        /// Gets the list of all available types.
+        /// </summary>
+        /// <returns>The list of all available types.</returns>
+        public List<string> Types
+        {{
+            get
+            {{
+                return _types;
+            }}
+        }}
+
+        /// <summary>
+        /// Gets the entity definition for the supplied name.
+        /// </summary>
+        /// <param name=""name"">Name of the entity definition to return.</param>
+        /// <returns>Entity definition for the supplied name.</returns>
+        public DSEntityType Get(string name)
+        {{
+            switch (name)
+            {{{2}
+                default:
+                    return null;
+            }}
+        }}
+    }}
+}}",
+                PREFIX, entityNameList, entityCaseList);
+
+            WriteFile(EntityTypeResolverLoc, string.Format("{0}StaticEntityTypeResolver.cs", PREFIX), content);
         }
 
         private void appendMessage(string message)
@@ -461,11 +547,11 @@ namespace DataServices.SDK.Entities.Attrs
             {
                 // Integer
                 case 1:
-                    return string.IsNullOrEmpty(column.DataSize) ? "INT" : FormatSqlType(column.DataSize);
+                    return "INT";
 
                 // String
                 case 2:
-                    return column.DataSize.Contains("CHAR") || column.DataSize.Contains("Type") ? FormatSqlType(column.DataSize) : string.Format("VARCHAR ({0})", column.DataSize);
+                    return column.DataSize.Contains("CHAR") ? column.DataSize : string.Format("NVARCHAR ({0})", column.DataSize);
 
                 // Boolean
                 case 3:
@@ -482,7 +568,7 @@ namespace DataServices.SDK.Entities.Attrs
 
                 // Reference
                 case 7:
-                    return FormatSqlType("KeyType");
+                    return "INT";
 
                 // Enum
                 case 8:
@@ -490,11 +576,6 @@ namespace DataServices.SDK.Entities.Attrs
             }
 
             return null;
-        }
-
-        private string FormatSqlType(string type)
-        {
-            return new List<string>{ "KeyType", "NameType", "NoteType", "DescrType" }.Contains(type) ? string.Format("[dbo].[{0}]", type) : type;
         }
 
         private string GetDataTypeStringForCode(EntityTypeElements column)
@@ -508,7 +589,7 @@ namespace DataServices.SDK.Entities.Attrs
                 // String
                 case 2:
                     return "string";
-                    
+
                 // Boolean
                 case 3:
                     return "bool";

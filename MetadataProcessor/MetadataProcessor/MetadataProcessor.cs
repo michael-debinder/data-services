@@ -32,6 +32,7 @@ namespace MetadataProcessor
             entitiyPOCOsLoc.Text = ConfigurationManager.AppSettings["Folder_Entities"];
             entityPOCOAttrsLoc.Text = ConfigurationManager.AppSettings["Folder_Entities.Attrs"];
             entityTypesLoc.Text = ConfigurationManager.AppSettings["Folder_EntityTypes"];
+            entityTypeResolverLoc.Text = ConfigurationManager.AppSettings["Folder_EntityTypeResolver"];
 
             var query = from entity in metadata.EntityTypes
                         select entity;
@@ -51,6 +52,7 @@ namespace MetadataProcessor
             _processingForm.EntityPOCOsLoc = entitiyPOCOs.Checked ? entitiyPOCOsLoc.Text : null;
             _processingForm.EntityPOCOAttrsLoc = entityPOCOAttrs.Checked ? entityPOCOAttrsLoc.Text : null;
             _processingForm.EntityTypesLoc = entityTypes.Checked ? entityTypesLoc.Text : null;
+            _processingForm.EntityTypeResolverLoc = entityTypeResolver.Checked ? entityTypeResolverLoc.Text : null;
 
             _processingForm.ShowDialog();
         }
