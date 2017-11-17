@@ -33,7 +33,7 @@ namespace DataServices.DataService.Controllers
         {
             // TODO - Ultimately all of this should be handled by Unity (or some other IoC Container implementation).
             _cache = new MemoryCache();
-            var entityTypeResolver = new StaticEntityTypeResolver();
+            var entityTypeResolver = new DSStaticEntityTypeResolver();
             var entityTypeRepository = new DSEntityTypeRepository(_cache, entityTypeResolver);
             var processor = new DSSQLSearchProcessor(_cache, entityTypeRepository);
 
